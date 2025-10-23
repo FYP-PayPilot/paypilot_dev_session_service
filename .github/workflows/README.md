@@ -32,33 +32,11 @@ This directory contains GitHub Actions workflows for continuous integration and 
 
 5. **Security** - Security scanning
    - Runs Gosec security scanner
-   - Uploads SARIF results to GitHub Security
+   - Outputs security scan results
 
 6. **Integration** - End-to-end tests
    - Spins up PostgreSQL and RabbitMQ services
    - Runs integration tests against real services
-
-### CodeQL Analysis (`codeql.yml`)
-
-**Triggers:**
-- Push to `main` or `develop`
-- Pull requests to `main` or `develop`
-- Weekly schedule (Monday at midnight)
-
-**Purpose:**
-- Deep security and quality analysis
-- Identifies potential vulnerabilities
-- Results available in GitHub Security tab
-
-### Dependency Review (`dependency-review.yml`)
-
-**Triggers:**
-- Pull requests to `main` or `develop`
-
-**Purpose:**
-- Reviews dependency changes for security issues
-- Fails on high-severity vulnerabilities
-- Comments summary on pull requests
 
 ### Release Pipeline (`release.yml`)
 
@@ -136,7 +114,6 @@ When adding new jobs:
 
 Status badges are included in the main README:
 - CI Pipeline status
-- CodeQL analysis status
 - Go Report Card grade
 
 ### Notifications

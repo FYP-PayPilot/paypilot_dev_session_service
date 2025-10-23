@@ -1,7 +1,6 @@
 # PayPilot Dev Session Service
 
 [![CI Pipeline](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/ci.yml/badge.svg)](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/ci.yml)
-[![CodeQL](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/codeql.yml/badge.svg)](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/codeql.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/villageFlower/paypilot_dev_session_service)](https://goreportcard.com/report/github.com/villageFlower/paypilot_dev_session_service)
 
 A microservice for managing development sessions in a no-code app generator. This service manages containerized development environments in Kubernetes, keeping dev containers alive and listening for frontend changes.
@@ -413,25 +412,11 @@ Runs on every push and pull request:
 
 5. **Security** - Security scanning
    - Runs Gosec security scanner
-   - Uploads results to GitHub Security tab
+   - Outputs security scan results
 
 6. **Integration Tests** - End-to-end testing
    - Spins up PostgreSQL and RabbitMQ services
    - Runs integration tests against real services
-
-### CodeQL Analysis (`.github/workflows/codeql.yml`)
-
-- Runs on push, pull requests, and weekly schedule
-- Performs deep security analysis
-- Identifies potential vulnerabilities
-- Results available in GitHub Security tab
-
-### Dependency Review (`.github/workflows/dependency-review.yml`)
-
-- Runs on pull requests
-- Reviews dependency changes for security issues
-- Fails on high-severity vulnerabilities
-- Posts summary comments on PRs
 
 ### Release Pipeline (`.github/workflows/release.yml`)
 
@@ -455,7 +440,6 @@ Triggered when pushing version tags (e.g., `v1.0.0`):
 
 The README includes status badges showing:
 - CI Pipeline status
-- CodeQL analysis status
 - Go Report Card grade
 
 ### Setting Up CI/CD
