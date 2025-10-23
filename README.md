@@ -1,5 +1,9 @@
 # PayPilot Dev Session Service
 
+[![CI Pipeline](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/ci.yml/badge.svg)](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/codeql.yml/badge.svg)](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/codeql.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/villageFlower/paypilot_dev_session_service)](https://goreportcard.com/report/github.com/villageFlower/paypilot_dev_session_service)
+
 A starter Go repository using industry-standard technologies for building scalable microservices.
 
 ## Tech Stack
@@ -309,6 +313,93 @@ Available commands:
 - `lint` - Run linters
 - `deps` - Download dependencies
 - `install-tools` - Install development tools
+
+## CI/CD Pipeline
+
+The repository includes comprehensive GitHub Actions workflows for continuous integration and deployment:
+
+### CI Pipeline (`.github/workflows/ci.yml`)
+
+Runs on every push and pull request:
+
+1. **Lint** - Code formatting and static analysis
+   - `go fmt` - Ensures code is properly formatted
+   - `go vet` - Examines Go source code and reports suspicious constructs
+   - `staticcheck` - Advanced static analysis
+
+2. **Test** - Unit and integration tests
+   - Runs all tests with race detection
+   - Generates code coverage reports
+   - Uploads coverage to Codecov
+
+3. **Build** - Application build verification
+   - Builds the application binary
+   - Uploads build artifacts
+
+4. **Docker** - Container build verification
+   - Builds Docker image
+   - Uses layer caching for faster builds
+
+5. **Security** - Security scanning
+   - Runs Gosec security scanner
+   - Uploads results to GitHub Security tab
+
+6. **Integration Tests** - End-to-end testing
+   - Spins up PostgreSQL and RabbitMQ services
+   - Runs integration tests against real services
+
+### CodeQL Analysis (`.github/workflows/codeql.yml`)
+
+- Runs on push, pull requests, and weekly schedule
+- Performs deep security analysis
+- Identifies potential vulnerabilities
+- Results available in GitHub Security tab
+
+### Dependency Review (`.github/workflows/dependency-review.yml`)
+
+- Runs on pull requests
+- Reviews dependency changes for security issues
+- Fails on high-severity vulnerabilities
+- Posts summary comments on PRs
+
+### Release Pipeline (`.github/workflows/release.yml`)
+
+Triggered when pushing version tags (e.g., `v1.0.0`):
+
+1. **Multi-platform Builds**
+   - Builds binaries for Linux (amd64, arm64)
+   - Builds binaries for macOS (amd64, arm64)
+   - Builds binaries for Windows (amd64)
+
+2. **GitHub Release**
+   - Creates GitHub release with binaries
+   - Auto-generates release notes
+
+3. **Docker Release**
+   - Builds multi-platform Docker images
+   - Pushes to Docker Hub with semantic versioning tags
+   - Tags: `latest`, `v1.0.0`, `v1.0`, `v1`, and SHA
+
+### Status Badges
+
+The README includes status badges showing:
+- CI Pipeline status
+- CodeQL analysis status
+- Go Report Card grade
+
+### Setting Up CI/CD
+
+The workflows are ready to use. For Docker publishing on releases:
+
+1. Add Docker Hub credentials to repository secrets:
+   - `DOCKER_USERNAME` - Your Docker Hub username
+   - `DOCKER_PASSWORD` - Your Docker Hub password or access token
+
+2. Create a release:
+   ```bash
+   git tag -a v1.0.0 -m "Release version 1.0.0"
+   git push origin v1.0.0
+   ```
 
 ## Contributing
 
