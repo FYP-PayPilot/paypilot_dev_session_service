@@ -46,26 +46,26 @@ clean: ## Clean build artifacts
 
 docker-build: ## Build Docker image
 	@echo "Building Docker image..."
-	docker-compose build
+	docker compose build
 	@echo "Docker image built"
 
 docker-up: ## Start Docker containers
 	@echo "Starting Docker containers..."
-	docker-compose up -d
+	docker compose up -d
 	@echo "Containers started. Access the app at http://localhost:8080"
 	@echo "RabbitMQ Management UI: http://localhost:15672 (guest/guest)"
 
 docker-down: ## Stop Docker containers
 	@echo "Stopping Docker containers..."
-	docker-compose down
+	docker compose down
 	@echo "Containers stopped"
 
 docker-logs: ## View Docker logs
-	docker-compose logs -f
+	docker compose logs -f
 
 docker-restart: ## Restart Docker containers
 	@echo "Restarting Docker containers..."
-	docker-compose restart
+	docker compose restart
 	@echo "Containers restarted"
 
 lint: ## Run linters
