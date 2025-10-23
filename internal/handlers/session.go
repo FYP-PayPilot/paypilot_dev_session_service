@@ -23,8 +23,8 @@ func NewSessionHandler(log *zap.Logger) *SessionHandler {
 }
 
 // CreateSession godoc
-// @Summary Create a new session
-// @Description Create a new session for a user
+// @Summary Create a new development session
+// @Description Create a new dev session for a project in the no-code app generator
 // @Tags sessions
 // @Accept json
 // @Produce json
@@ -54,6 +54,11 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 	session.IPAddress = c.ClientIP()
 	session.UserAgent = c.Request.UserAgent()
 
+	// Set default status if not provided
+	if session.Status == "" {
+		session.Status = "pending"
+	}
+
 	if err := database.DB.Create(&session).Error; err != nil {
 		h.log.Error("Failed to create session", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
@@ -64,8 +69,8 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 }
 
 // GetSession godoc
-// @Summary Get a session by ID
-// @Description Get session details by session ID
+// @Summary Get a dev session by ID
+// @Description Get dev session details by session ID
 // @Tags sessions
 // @Accept json
 // @Produce json
@@ -81,7 +86,7 @@ func (h *SessionHandler) GetSession(c *gin.Context) {
 	}
 
 	var session models.Session
-	if err := database.DB.Preload("User").First(&session, id).Error; err != nil {
+	if err := database.DB.First(&session, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
 		return
 	}
@@ -90,12 +95,14 @@ func (h *SessionHandler) GetSession(c *gin.Context) {
 }
 
 // ListSessions godoc
-// @Summary List all sessions
-// @Description Get a list of all sessions
+// @Summary List all dev sessions
+// @Description Get a list of all dev sessions with optional filtering
 // @Tags sessions
 // @Accept json
 // @Produce json
 // @Param user_id query int false "Filter by user ID"
+// @Param project_id query int false "Filter by project ID"
+// @Param status query string false "Filter by status (pending, running, stopped, error)"
 // @Param page query int false "Page number" default(1)
 // @Param page_size query int false "Page size" default(10)
 // @Success 200 {object} map[string]interface{}
@@ -104,6 +111,8 @@ func (h *SessionHandler) ListSessions(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	userID := c.Query("user_id")
+	projectID := c.Query("project_id")
+	status := c.Query("status")
 
 	if page < 1 {
 		page = 1
@@ -114,9 +123,15 @@ func (h *SessionHandler) ListSessions(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	query := database.DB.Model(&models.Session{}).Preload("User")
+	query := database.DB.Model(&models.Session{})
 	if userID != "" {
 		query = query.Where("user_id = ?", userID)
+	}
+	if projectID != "" {
+		query = query.Where("project_id = ?", projectID)
+	}
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
 
 	var sessions []models.Session
@@ -137,8 +152,8 @@ func (h *SessionHandler) ListSessions(c *gin.Context) {
 }
 
 // DeleteSession godoc
-// @Summary Delete a session
-// @Description Delete a session by ID
+// @Summary Delete a dev session
+// @Description Delete a dev session by ID (also stops the associated container)
 // @Tags sessions
 // @Accept json
 // @Produce json
@@ -158,6 +173,8 @@ func (h *SessionHandler) DeleteSession(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Session not found"})
 		return
 	}
+
+	// TODO: Integrate with Kubernetes to stop/delete the dev container
 
 	if err := database.DB.Delete(&session).Error; err != nil {
 		h.log.Error("Failed to delete session", zap.Error(err))

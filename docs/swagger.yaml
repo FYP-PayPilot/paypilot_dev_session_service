@@ -2,6 +2,8 @@ basePath: /api/v1
 definitions:
   models.Session:
     properties:
+      container_name:
+        type: string
       created_at:
         type: string
       expires_at:
@@ -12,40 +14,24 @@ definitions:
         type: string
       is_active:
         type: boolean
+      namespace:
+        type: string
+      project_id:
+        type: integer
+      status:
+        description: pending, running, stopped, error
+        type: string
       token:
         type: string
       updated_at:
         type: string
-      user:
-        $ref: '#/definitions/models.User'
       user_agent:
         type: string
       user_id:
         type: integer
     required:
+    - project_id
     - user_id
-    type: object
-  models.User:
-    properties:
-      created_at:
-        type: string
-      email:
-        type: string
-      first_name:
-        type: string
-      id:
-        type: integer
-      is_active:
-        type: boolean
-      last_name:
-        type: string
-      updated_at:
-        type: string
-      username:
-        type: string
-    required:
-    - email
-    - username
     type: object
 host: localhost:8080
 info:
@@ -81,12 +67,20 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get a list of all sessions
+      description: Get a list of all dev sessions with optional filtering
       parameters:
       - description: Filter by user ID
         in: query
         name: user_id
         type: integer
+      - description: Filter by project ID
+        in: query
+        name: project_id
+        type: integer
+      - description: Filter by status (pending, running, stopped, error)
+        in: query
+        name: status
+        type: string
       - default: 1
         description: Page number
         in: query
@@ -105,13 +99,13 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: List all sessions
+      summary: List all dev sessions
       tags:
       - sessions
     post:
       consumes:
       - application/json
-      description: Create a new session for a user
+      description: Create a new dev session for a project in the no-code app generator
       parameters:
       - description: Session information
         in: body
@@ -136,14 +130,14 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Create a new session
+      summary: Create a new development session
       tags:
       - sessions
   /sessions/{id}:
     delete:
       consumes:
       - application/json
-      description: Delete a session by ID
+      description: Delete a dev session by ID (also stops the associated container)
       parameters:
       - description: Session ID
         in: path
@@ -160,13 +154,13 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Delete a session
+      summary: Delete a dev session
       tags:
       - sessions
     get:
       consumes:
       - application/json
-      description: Get session details by session ID
+      description: Get dev session details by session ID
       parameters:
       - description: Session ID
         in: path
@@ -185,150 +179,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Get a session by ID
+      summary: Get a dev session by ID
       tags:
       - sessions
-  /users:
-    get:
-      consumes:
-      - application/json
-      description: Get a list of all users
-      parameters:
-      - default: 1
-        description: Page number
-        in: query
-        name: page
-        type: integer
-      - default: 10
-        description: Page size
-        in: query
-        name: page_size
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties: true
-            type: object
-      summary: List all users
-      tags:
-      - users
-    post:
-      consumes:
-      - application/json
-      description: Create a new user with the provided information
-      parameters:
-      - description: User information
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/models.User'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.User'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Create a new user
-      tags:
-      - users
-  /users/{id}:
-    delete:
-      consumes:
-      - application/json
-      description: Delete a user by ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "204":
-          description: No Content
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Delete a user
-      tags:
-      - users
-    get:
-      consumes:
-      - application/json
-      description: Get user details by user ID
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.User'
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get a user by ID
-      tags:
-      - users
-    put:
-      consumes:
-      - application/json
-      description: Update user information
-      parameters:
-      - description: User ID
-        in: path
-        name: id
-        required: true
-        type: integer
-      - description: User information
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/models.User'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/models.User'
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties: true
-            type: object
-        "404":
-          description: Not Found
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Update a user
-      tags:
-      - users
 swagger: "2.0"

@@ -4,7 +4,16 @@
 [![CodeQL](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/codeql.yml/badge.svg)](https://github.com/villageFlower/paypilot_dev_session_service/actions/workflows/codeql.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/villageFlower/paypilot_dev_session_service)](https://goreportcard.com/report/github.com/villageFlower/paypilot_dev_session_service)
 
-A starter Go repository using industry-standard technologies for building scalable microservices.
+A microservice for managing development sessions in a no-code app generator. This service manages containerized development environments in Kubernetes, keeping dev containers alive and listening for frontend changes.
+
+## Overview
+
+This service is part of a no-code application generator platform. It manages development sessions for projects by:
+- Creating isolated dev containers in Kubernetes namespaces
+- Managing session lifecycle (create, monitor, delete)
+- Tracking active development sessions per project and user
+- Using Helm charts to deploy and manage dev containers
+- Integrating with other microservices for user and project management
 
 ## Tech Stack
 
@@ -170,20 +179,19 @@ make build
 
 - `GET /api/v1/health` - Health check endpoint
 
-### Users
+### Dev Sessions
 
-- `POST /api/v1/users` - Create a new user
-- `GET /api/v1/users` - List all users (with pagination)
-- `GET /api/v1/users/:id` - Get a specific user
-- `PUT /api/v1/users/:id` - Update a user
-- `DELETE /api/v1/users/:id` - Delete a user
-
-### Sessions
-
-- `POST /api/v1/sessions` - Create a new session
-- `GET /api/v1/sessions` - List all sessions (with pagination)
+- `POST /api/v1/sessions` - Create a new dev session (deploys a container)
+- `GET /api/v1/sessions` - List all sessions with filtering (user_id, project_id, status)
 - `GET /api/v1/sessions/:id` - Get a specific session
-- `DELETE /api/v1/sessions/:id` - Delete a session
+- `DELETE /api/v1/sessions/:id` - Delete a session (stops the container)
+
+**Query Parameters for List:**
+- `user_id` - Filter sessions by user ID
+- `project_id` - Filter sessions by project ID  
+- `status` - Filter by status (pending, running, stopped, error)
+- `page` - Page number for pagination
+- `page_size` - Number of items per page
 
 ### API Documentation
 
@@ -225,6 +233,62 @@ log:
   encoding: json          # Log format: json, console
 ```
 
+## Kubernetes & Helm Integration
+
+This service manages dev containers in Kubernetes using Helm charts:
+
+### Helm Chart
+
+The `helm/dev-container` chart deploys isolated dev environments with:
+- Dedicated namespace per project
+- Persistent storage for project files
+- Resource limits (CPU/Memory)
+- Health monitoring and auto-restart
+- Service exposure for frontend communication
+
+### Deploy a Dev Container
+
+```bash
+# Install dev container for project 123, user 456
+helm install dev-session-abc ./helm/dev-container \
+  --set project.id=123 \
+  --set user.id=456 \
+  --namespace project-123 \
+  --create-namespace
+```
+
+See [helm/dev-container/README.md](helm/dev-container/README.md) for full documentation.
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│           Dev Session Service (This)              │
+│  - Manages session records in PostgreSQL         │
+│  - Creates/deletes Helm releases                 │
+│  - Tracks container status                       │
+└────────────────┬─────────────────────────────────┘
+                 │
+                 ↓ Helm Commands
+┌──────────────────────────────────────────────────┐
+│           Kubernetes Cluster                      │
+│                                                   │
+│  ┌────────────────────────────────────────────┐  │
+│  │  Namespace: project-123                    │  │
+│  │  - Dev Container Pod (user 456)            │  │
+│  │  - PVC (5Gi workspace)                     │  │
+│  │  - Service (ClusterIP)                     │  │
+│  └────────────────────────────────────────────┘  │
+│                                                   │
+│  ┌────────────────────────────────────────────┐  │
+│  │  Namespace: project-789                    │  │
+│  │  - Dev Container Pod (user 101)            │  │
+│  │  - PVC (5Gi workspace)                     │  │
+│  │  - Service (ClusterIP)                     │  │
+│  └────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+```
+
 ## Database Migrations
 
 Database migrations are handled automatically by GORM's AutoMigrate feature. When the application starts, it will:
@@ -233,7 +297,14 @@ Database migrations are handled automatically by GORM's AutoMigrate feature. Whe
 2. Automatically create or update tables based on the model definitions
 3. Preserve existing data
 
-Models are defined in `internal/models/`.
+The main model is `Session` which tracks:
+- `user_id` - Integer reference to user (managed by another microservice)
+- `project_id` - Integer reference to project (managed by another microservice)
+- `container_name` - Name of the Kubernetes pod
+- `namespace` - Kubernetes namespace
+- `status` - Container status (pending, running, stopped, error)
+- `token` - Unique session token
+- `expires_at` - Session expiration time
 
 ## Testing
 

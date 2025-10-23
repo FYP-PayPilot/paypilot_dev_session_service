@@ -50,7 +50,7 @@ const docTemplate = `{
         },
         "/sessions": {
             "get": {
-                "description": "Get a list of all sessions",
+                "description": "Get a list of all dev sessions with optional filtering",
                 "consumes": [
                     "application/json"
                 ],
@@ -60,12 +60,24 @@ const docTemplate = `{
                 "tags": [
                     "sessions"
                 ],
-                "summary": "List all sessions",
+                "summary": "List all dev sessions",
                 "parameters": [
                     {
                         "type": "integer",
                         "description": "Filter by user ID",
                         "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by project ID",
+                        "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status (pending, running, stopped, error)",
+                        "name": "status",
                         "in": "query"
                     },
                     {
@@ -94,7 +106,7 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Create a new session for a user",
+                "description": "Create a new dev session for a project in the no-code app generator",
                 "consumes": [
                     "application/json"
                 ],
@@ -104,7 +116,7 @@ const docTemplate = `{
                 "tags": [
                     "sessions"
                 ],
-                "summary": "Create a new session",
+                "summary": "Create a new development session",
                 "parameters": [
                     {
                         "description": "Session information",
@@ -142,7 +154,7 @@ const docTemplate = `{
         },
         "/sessions/{id}": {
             "get": {
-                "description": "Get session details by session ID",
+                "description": "Get dev session details by session ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -152,7 +164,7 @@ const docTemplate = `{
                 "tags": [
                     "sessions"
                 ],
-                "summary": "Get a session by ID",
+                "summary": "Get a dev session by ID",
                 "parameters": [
                     {
                         "type": "integer",
@@ -179,7 +191,7 @@ const docTemplate = `{
                 }
             },
             "delete": {
-                "description": "Delete a session by ID",
+                "description": "Delete a dev session by ID (also stops the associated container)",
                 "consumes": [
                     "application/json"
                 ],
@@ -189,223 +201,11 @@ const docTemplate = `{
                 "tags": [
                     "sessions"
                 ],
-                "summary": "Delete a session",
+                "summary": "Delete a dev session",
                 "parameters": [
                     {
                         "type": "integer",
                         "description": "Session ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "No Content"
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/users": {
-            "get": {
-                "description": "Get a list of all users",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "List all users",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 1,
-                        "description": "Page number",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Page size",
-                        "name": "page_size",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new user with the provided information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Create a new user",
-                "parameters": [
-                    {
-                        "description": "User information",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{id}": {
-            "get": {
-                "description": "Get user details by user ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get a user by ID",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "put": {
-                "description": "Update user information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Update a user",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "User information",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "description": "Delete a user by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Delete a user",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "User ID",
                         "name": "id",
                         "in": "path",
                         "required": true
@@ -430,9 +230,13 @@ const docTemplate = `{
         "models.Session": {
             "type": "object",
             "required": [
+                "project_id",
                 "user_id"
             ],
             "properties": {
+                "container_name": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -448,53 +252,27 @@ const docTemplate = `{
                 "is_active": {
                     "type": "boolean"
                 },
+                "namespace": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "integer"
+                },
+                "status": {
+                    "description": "pending, running, stopped, error",
+                    "type": "string"
+                },
                 "token": {
                     "type": "string"
                 },
                 "updated_at": {
                     "type": "string"
                 },
-                "user": {
-                    "$ref": "#/definitions/models.User"
-                },
                 "user_agent": {
                     "type": "string"
                 },
                 "user_id": {
                     "type": "integer"
-                }
-            }
-        },
-        "models.User": {
-            "type": "object",
-            "required": [
-                "email",
-                "username"
-            ],
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "first_name": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "last_name": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
                 }
             }
         }

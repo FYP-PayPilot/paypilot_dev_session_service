@@ -57,9 +57,8 @@ func AutoMigrate(log *zap.Logger) error {
 		return fmt.Errorf("database not initialized")
 	}
 
-	// Add your models here
+	// Migrate dev session model
 	err := DB.AutoMigrate(
-		&models.User{},
 		&models.Session{},
 	)
 	if err != nil {
