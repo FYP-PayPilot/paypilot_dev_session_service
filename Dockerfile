@@ -19,8 +19,11 @@ COPY . .
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/api
 
-# Final stage - use scratch for minimal image
-FROM scratch
+# Final stage - use alpine for minimal image with filesystem
+FROM alpine:latest
+
+# Install ca-certificates for HTTPS requests
+RUN apk --no-cache add ca-certificates
 
 WORKDIR /root/
 
