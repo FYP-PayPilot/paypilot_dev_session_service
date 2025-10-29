@@ -1,0 +1,31 @@
+server:
+  port: 8080
+  mode: debug # debug, release, test
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: paypilot_dev
+  sslmode: disable
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: 3600 # seconds
+
+rabbitmq:
+  host: localhost
+  port: 5672
+  user: guest
+  password: guest
+  vhost: /
+  exchange: paypilot_exchange
+  queue: paypilot_queue
+
+log:
+  level: debug # debug, info, warn, error
+  encoding: json # json, console
+  output_paths:
+    - stdout
+  error_output_paths:
+    - stderr
