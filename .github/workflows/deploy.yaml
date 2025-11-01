@@ -83,10 +83,6 @@ jobs:
         with:
           version: 'v3.14.0'
 
-      - name: Create namespace if not exists
-        run: |
-          kubectl create namespace dev-session-service --dry-run=client -o yaml | kubectl apply -f -
-
       - name: Create Docker registry secret
         run: |
           kubectl create secret docker-registry docr-secret \
