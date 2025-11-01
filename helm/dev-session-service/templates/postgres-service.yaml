@@ -1,0 +1,21 @@
+{{- if .Values.database.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dev-session-service.fullname" . }}-postgres
+  namespace: dev-session-service
+  labels:
+    {{- include "dev-session-service.labels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: postgres
+      protocol: TCP
+      name: postgres
+  selector:
+    {{- include "dev-session-service.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: database
+{{- end }}

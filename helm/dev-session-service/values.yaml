@@ -1,0 +1,91 @@
+replicaCount: 1
+
+image:
+  repository: registry.digitalocean.com/paypilot/dev-session-service
+  pullPolicy: IfNotPresent
+  # Note: tag is overridden by CI/CD pipeline with commit SHA (e.g., main-abc1234)
+  # This default is only used for manual deployments
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: dev-session-service.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+env:
+  SERVER_PORT: "8080"
+  SERVER_MODE: "release"
+  LOG_LEVEL: "info"
+  LOG_ENCODING: "json"
+
+# Database configuration
+database:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnamilegacy/postgresql
+    tag: "17.2.0-debian-12-r4"
+  storage:
+    size: 10Gi
+    storageClassName: ""
+  env:
+    POSTGRES_DB: paypilot_dev
+    POSTGRES_USER: postgres
+
+# RabbitMQ configuration - connecting to shared instance in default namespace
+rabbitmq:
+  enabled: false  # Using shared RabbitMQ in default namespace
+  host: "rabbitmq.default.svc.cluster.local"
+  port: "5672"
+  vhost: "/"
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -1,14 +1,14 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "dev-container.name" -}}
+{{- define "dev-session-service.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Create a default fully qualified app name.
 */}}
-{{- define "dev-container.fullname" -}}
+{{- define "dev-session-service.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -24,16 +24,16 @@ Create a default fully qualified app name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "dev-container.chart" -}}
+{{- define "dev-session-service.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "dev-container.labels" -}}
-helm.sh/chart: {{ include "dev-container.chart" . }}
-{{ include "dev-container.selectorLabels" . }}
+{{- define "dev-session-service.labels" -}}
+helm.sh/chart: {{ include "dev-session-service.chart" . }}
+{{ include "dev-session-service.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -43,18 +43,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "dev-container.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "dev-container.name" . }}
+{{- define "dev-session-service.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "dev-session-service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
-{{/*
-Create the name of the service account to use
-*/}}
-{{- define "dev-container.serviceAccountName" -}}
-{{- if .Values.serviceAccount.create }}
-{{- default (include "dev-container.fullname" .) .Values.serviceAccount.name }}
-{{- else }}
-{{- default "default" .Values.serviceAccount.name }}
-{{- end }}
 {{- end }}

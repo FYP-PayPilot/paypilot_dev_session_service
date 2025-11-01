@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "dev-session-service.fullname" . }}
+  namespace: dev-session-service
+  labels:
+    {{- include "dev-session-service.labels" . | nindent 4 }}
+data:
+  SERVER_PORT: {{ .Values.env.SERVER_PORT | quote }}
+  SERVER_MODE: {{ .Values.env.SERVER_MODE | quote }}
+  LOG_LEVEL: {{ .Values.env.LOG_LEVEL | quote }}
+  LOG_ENCODING: {{ .Values.env.LOG_ENCODING | quote }}
+  DB_HOST: {{ include "dev-session-service.fullname" . }}-postgres
+  DB_PORT: "5432"
+  DB_USER: {{ .Values.database.env.POSTGRES_USER | quote }}
+  DB_NAME: {{ .Values.database.env.POSTGRES_DB | quote }}
+  DB_SSLMODE: "disable"
+  RABBITMQ_HOST: {{ .Values.rabbitmq.host | quote }}
+  RABBITMQ_PORT: {{ .Values.rabbitmq.port | quote }}
+  RABBITMQ_USER: "guest"
+  RABBITMQ_VHOST: {{ .Values.rabbitmq.vhost | quote }}
