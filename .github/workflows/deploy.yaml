@@ -124,3 +124,36 @@ jobs:
           
           echo "Deployment successful!"
           kubectl get pods -n dev-session-service
+
+      - name: Get LoadBalancer IP
+        run: |
+          echo "⏳ Waiting for LoadBalancer IP to be assigned..."
+          for i in {1..30}; do
+            EXTERNAL_IP=$(kubectl get service dev-session-service-dev-session-service \
+              --namespace dev-session-service \
+              -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+            
+            if [ -n "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "" ]; then
+              echo "✅ LoadBalancer IP assigned!"
+              echo ""
+              echo "================================================"
+              echo "🌐 EXTERNAL IP: $EXTERNAL_IP"
+              echo "================================================"
+              echo ""
+              echo "Add this A record to your Cloudflare DNS:"
+              echo "Type: A"
+              echo "Name: @ (or your subdomain)"
+              echo "Content: $EXTERNAL_IP"
+              echo "Proxy: Enabled (orange cloud)"
+              echo ""
+              break
+            fi
+            
+            echo "Attempt $i/30: Waiting for IP..."
+            sleep 10
+          done
+          
+          if [ -z "$EXTERNAL_IP" ] || [ "$EXTERNAL_IP" == "" ]; then
+            echo "⚠️  Warning: LoadBalancer IP not assigned after 5 minutes"
+            kubectl get service dev-session-service-dev-session-service -n dev-session-service
+          fi
