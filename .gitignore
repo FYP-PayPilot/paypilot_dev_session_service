@@ -32,6 +32,8 @@ go.work
 /bin/
 /dist/
 /tmp/
+/api
+api
 
 # Logs
 *.log
