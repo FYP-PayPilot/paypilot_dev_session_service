@@ -14,6 +14,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// AlwaysOnSessionDuration defines how long always-on sessions remain valid (1 year)
+	AlwaysOnSessionDuration = 24 * 365 * time.Hour
+)
+
 // SessionHandler handles session-related requests
 type SessionHandler struct {
 	log       *zap.Logger
@@ -53,7 +58,7 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 
 	// Set expiration time if not provided (1 year for always-on sessions)
 	if session.ExpiresAt.IsZero() {
-		session.ExpiresAt = time.Now().Add(24 * 365 * time.Hour)
+		session.ExpiresAt = time.Now().Add(AlwaysOnSessionDuration)
 	}
 
 	// Set IP address and user agent from request
@@ -261,8 +266,24 @@ func (h *SessionHandler) GetOrCreateSessionByProjectUUID(c *gin.Context) {
 	h.log.Info("Creating new session for project", zap.String("project_uuid", projectUUID))
 
 	// Get user_id and project_id from query params or use defaults
-	userID, _ := strconv.Atoi(c.DefaultQuery("user_id", "0"))
-	projectID, _ := strconv.Atoi(c.DefaultQuery("project_id", "0"))
+	userID := 0
+	projectID := 0
+
+	if userIDStr := c.Query("user_id"); userIDStr != "" {
+		if parsed, err := strconv.Atoi(userIDStr); err == nil {
+			userID = parsed
+		} else {
+			h.log.Warn("Invalid user_id parameter", zap.String("value", userIDStr), zap.Error(err))
+		}
+	}
+
+	if projectIDStr := c.Query("project_id"); projectIDStr != "" {
+		if parsed, err := strconv.Atoi(projectIDStr); err == nil {
+			projectID = parsed
+		} else {
+			h.log.Warn("Invalid project_id parameter", zap.String("value", projectIDStr), zap.Error(err))
+		}
+	}
 
 	// Create new session
 	session = models.Session{
@@ -270,8 +291,8 @@ func (h *SessionHandler) GetOrCreateSessionByProjectUUID(c *gin.Context) {
 		ProjectID:   projectID,
 		ProjectUUID: projectUUID,
 		Token:       uuid.New().String(),
-		ExpiresAt:   time.Now().Add(24 * 365 * time.Hour), // 1 year expiration for always-on sessions
-		Namespace:   projectUUID,                          // Use project UUID as namespace
+		ExpiresAt:   time.Now().Add(AlwaysOnSessionDuration),
+		Namespace:   projectUUID, // Use project UUID as namespace
 		Status:      "pending",
 		IPAddress:   c.ClientIP(),
 		UserAgent:   c.Request.UserAgent(),

@@ -2,8 +2,10 @@ package kubernetes
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strings"
 
 	"go.uber.org/zap"
@@ -41,6 +43,11 @@ type ServiceEndpoints struct {
 
 // CreateDevContainer creates a new dev container in the specified namespace using Helm
 func (c *Client) CreateDevContainer(ctx context.Context, projectUUID string, projectID int, userID int) (*ServiceEndpoints, error) {
+	// Validate input to prevent command injection
+	if !isValidProjectUUID(projectUUID) {
+		return nil, fmt.Errorf("invalid project UUID format: %s", projectUUID)
+	}
+
 	releaseName := fmt.Sprintf("dev-session-%s", projectUUID)
 
 	c.log.Info("Creating dev container with Helm",
@@ -89,6 +96,13 @@ func (c *Client) CreateDevContainer(ctx context.Context, projectUUID string, pro
 	return endpoints, nil
 }
 
+// isValidProjectUUID validates that a project UUID contains only safe characters
+func isValidProjectUUID(uuid string) bool {
+	// UUID format: 8-4-4-4-12 hex digits with hyphens
+	match, _ := regexp.MatchString(`^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$`, uuid)
+	return match
+}
+
 // GetServiceEndpoints retrieves the service endpoints for a dev session
 func (c *Client) GetServiceEndpoints(ctx context.Context, namespace string, releaseName string) (*ServiceEndpoints, error) {
 	// Get ClusterIP of the load balancer service
@@ -101,20 +115,23 @@ func (c *Client) GetServiceEndpoints(ctx context.Context, namespace string, rele
 	output, err := cmd.CombinedOutput()
 	clusterIP := strings.TrimSpace(string(output))
 
-	if err != nil || clusterIP == "" {
-		c.log.Warn("Failed to get ClusterIP", zap.Error(err))
-		clusterIP = "pending"
-	}
-
 	endpoints := &ServiceEndpoints{
-		ClusterIP:   clusterIP,
-		PreviewURL:  fmt.Sprintf("http://%s/preview", clusterIP),
 		PreviewPath: "/preview",
-		ChatURL:     fmt.Sprintf("http://%s/chat", clusterIP),
 		ChatPath:    "/chat",
-		VscodeURL:   fmt.Sprintf("http://%s/vscode", clusterIP),
 		VscodePath:  "/vscode",
 	}
+
+	if err != nil || clusterIP == "" || clusterIP == "<none>" {
+		c.log.Warn("Failed to get ClusterIP, using placeholder", zap.Error(err))
+		endpoints.ClusterIP = ""
+		// Don't construct URLs if we don't have a valid IP
+		return endpoints, nil
+	}
+
+	endpoints.ClusterIP = clusterIP
+	endpoints.PreviewURL = fmt.Sprintf("http://%s/preview", clusterIP)
+	endpoints.ChatURL = fmt.Sprintf("http://%s/chat", clusterIP)
+	endpoints.VscodeURL = fmt.Sprintf("http://%s/vscode", clusterIP)
 
 	return endpoints, nil
 }
@@ -147,6 +164,13 @@ func (c *Client) DeleteDevContainer(ctx context.Context, projectUUID string) err
 	return nil
 }
 
+// HelmStatus represents the Helm release status JSON structure
+type HelmStatus struct {
+	Info struct {
+		Status string `json:"status"`
+	} `json:"info"`
+}
+
 // GetContainerStatus returns the status of a dev container
 func (c *Client) GetContainerStatus(ctx context.Context, namespace string, releaseName string) (string, error) {
 	// Query Helm release status
@@ -159,16 +183,26 @@ func (c *Client) GetContainerStatus(ctx context.Context, namespace string, relea
 		return "error", err
 	}
 
-	// Check if output contains "deployed" status
-	if strings.Contains(string(output), `"status":"deployed"`) {
-		return "running", nil
-	} else if strings.Contains(string(output), `"status":"pending-install"`) {
-		return "pending", nil
-	} else if strings.Contains(string(output), `"status":"failed"`) {
-		return "error", nil
+	// Parse JSON output
+	var status HelmStatus
+	if err := json.Unmarshal(output, &status); err != nil {
+		c.log.Error("Failed to parse Helm status JSON", zap.Error(err))
+		return "unknown", err
 	}
 
-	return "unknown", nil
+	// Map Helm status to our status values
+	switch strings.ToLower(status.Info.Status) {
+	case "deployed":
+		return "running", nil
+	case "pending-install", "pending-upgrade", "pending-rollback":
+		return "pending", nil
+	case "failed":
+		return "error", nil
+	case "uninstalling", "uninstalled":
+		return "stopped", nil
+	default:
+		return "unknown", nil
+	}
 }
 
 // UpdateContainer updates the configuration of a running dev container

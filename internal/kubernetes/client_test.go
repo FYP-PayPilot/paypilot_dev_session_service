@@ -67,3 +67,54 @@ func TestClient_ServiceEndpoints(t *testing.T) {
 	assert.Equal(t, "/vscode", endpoints.VscodePath)
 	assert.Equal(t, "10.0.0.1", endpoints.ClusterIP)
 }
+
+func TestIsValidProjectUUID(t *testing.T) {
+	tests := []struct {
+		name  string
+		uuid  string
+		valid bool
+	}{
+		{
+			name:  "valid UUID",
+			uuid:  "550e8400-e29b-41d4-a716-446655440000",
+			valid: true,
+		},
+		{
+			name:  "valid UUID uppercase",
+			uuid:  "550E8400-E29B-41D4-A716-446655440000",
+			valid: true,
+		},
+		{
+			name:  "invalid UUID - wrong format",
+			uuid:  "550e8400-e29b-41d4-a716",
+			valid: false,
+		},
+		{
+			name:  "invalid UUID - command injection attempt",
+			uuid:  "550e8400-e29b-41d4-a716-446655440000; rm -rf /",
+			valid: false,
+		},
+		{
+			name:  "invalid UUID - special characters",
+			uuid:  "550e8400-e29b-41d4-a716-44665544000@",
+			valid: false,
+		},
+		{
+			name:  "empty UUID",
+			uuid:  "",
+			valid: false,
+		},
+		{
+			name:  "invalid UUID - no hyphens",
+			uuid:  "550e8400e29b41d4a716446655440000",
+			valid: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValidProjectUUID(tt.uuid)
+			assert.Equal(t, tt.valid, result, "UUID validation mismatch for: %s", tt.uuid)
+		})
+	}
+}
