@@ -93,14 +93,14 @@ func (c *Client) CreateDevContainer(ctx context.Context, projectUUID string, pro
 func (c *Client) GetServiceEndpoints(ctx context.Context, namespace string, releaseName string) (*ServiceEndpoints, error) {
 	// Get ClusterIP of the load balancer service
 	serviceName := fmt.Sprintf("%s-dev-session-template-lb", releaseName)
-	
+
 	cmd := exec.CommandContext(ctx, "kubectl", "get", "service", serviceName,
 		"-n", namespace,
 		"-o", "jsonpath={.spec.clusterIP}")
-	
+
 	output, err := cmd.CombinedOutput()
 	clusterIP := strings.TrimSpace(string(output))
-	
+
 	if err != nil || clusterIP == "" {
 		c.log.Warn("Failed to get ClusterIP", zap.Error(err))
 		clusterIP = "pending"

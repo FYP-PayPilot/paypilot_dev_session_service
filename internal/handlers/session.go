@@ -16,14 +16,14 @@ import (
 
 // SessionHandler handles session-related requests
 type SessionHandler struct {
-	log      *zap.Logger
+	log       *zap.Logger
 	k8sClient *kubernetes.Client
 }
 
 // NewSessionHandler creates a new session handler
 func NewSessionHandler(log *zap.Logger, k8sClient *kubernetes.Client) *SessionHandler {
 	return &SessionHandler{
-		log:      log,
+		log:       log,
 		k8sClient: k8sClient,
 	}
 }
@@ -249,7 +249,7 @@ func (h *SessionHandler) GetOrCreateSessionByProjectUUID(c *gin.Context) {
 	// Try to find existing session
 	var session models.Session
 	err := database.DB.Where("project_uuid = ? AND is_active = ?", projectUUID, true).First(&session).Error
-	
+
 	if err == nil {
 		// Session exists, return it
 		h.log.Info("Found existing session", zap.String("project_uuid", projectUUID))
@@ -271,7 +271,7 @@ func (h *SessionHandler) GetOrCreateSessionByProjectUUID(c *gin.Context) {
 		ProjectUUID: projectUUID,
 		Token:       uuid.New().String(),
 		ExpiresAt:   time.Now().Add(24 * 365 * time.Hour), // 1 year expiration for always-on sessions
-		Namespace:   projectUUID, // Use project UUID as namespace
+		Namespace:   projectUUID,                          // Use project UUID as namespace
 		Status:      "pending",
 		IPAddress:   c.ClientIP(),
 		UserAgent:   c.Request.UserAgent(),

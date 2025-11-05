@@ -19,18 +19,18 @@ type Session struct {
 	Token         string         `gorm:"uniqueIndex;not null" json:"token"`
 	ExpiresAt     time.Time      `json:"expires_at"`
 	ContainerName string         `json:"container_name"`
-	Namespace     string         `json:"namespace"` // Uses project_uuid as namespace
+	Namespace     string         `json:"namespace"`                       // Uses project_uuid as namespace
 	Status        string         `gorm:"default:'pending'" json:"status"` // pending, running, stopped, error
 	IPAddress     string         `json:"ip_address"`
 	UserAgent     string         `json:"user_agent"`
 	IsActive      bool           `gorm:"default:true" json:"is_active"`
 	// Service endpoints
-	PreviewURL string `json:"preview_url"` // Preview application endpoint
+	PreviewURL  string `json:"preview_url"`  // Preview application endpoint
 	PreviewPath string `json:"preview_path"` // Path redirect for preview
-	ChatURL    string `json:"chat_url"`    // Chat/AI agents endpoint
-	ChatPath   string `json:"chat_path"`   // Path redirect for chat
-	VscodeURL  string `json:"vscode_url"`  // VS Code web endpoint
-	VscodePath string `json:"vscode_path"` // Path redirect for vscode
+	ChatURL     string `json:"chat_url"`     // Chat/AI agents endpoint
+	ChatPath    string `json:"chat_path"`    // Path redirect for chat
+	VscodeURL   string `json:"vscode_url"`   // VS Code web endpoint
+	VscodePath  string `json:"vscode_path"`  // Path redirect for vscode
 }
 
 // TableName overrides the table name
