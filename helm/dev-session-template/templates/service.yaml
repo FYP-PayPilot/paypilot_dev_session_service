@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dev-session-template.fullname" . }}-lb
+  namespace: {{ .Values.project.uuid }}
+  labels:
+    {{- include "dev-session-template.labels" . | nindent 4 }}
+    service-type: loadbalancer
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+  - port: {{ .Values.service.loadBalancer.port }}
+    targetPort: {{ .Values.service.loadBalancer.targetPort }}
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "dev-session-template.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dev-session-template.fullname" . }}-preview
+  namespace: {{ .Values.project.uuid }}
+  labels:
+    {{- include "dev-session-template.labels" . | nindent 4 }}
+    service-type: preview
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.service.preview.port }}
+    targetPort: preview
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "dev-session-template.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dev-session-template.fullname" . }}-chat
+  namespace: {{ .Values.project.uuid }}
+  labels:
+    {{- include "dev-session-template.labels" . | nindent 4 }}
+    service-type: chat
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.service.chat.port }}
+    targetPort: chat
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "dev-session-template.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dev-session-template.fullname" . }}-vscode
+  namespace: {{ .Values.project.uuid }}
+  labels:
+    {{- include "dev-session-template.labels" . | nindent 4 }}
+    service-type: vscode
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.service.vscode.port }}
+    targetPort: vscode
+    protocol: TCP
+    name: http
+  selector:
+    {{- include "dev-session-template.selectorLabels" . | nindent 4 }}

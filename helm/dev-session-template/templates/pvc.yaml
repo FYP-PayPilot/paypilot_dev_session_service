@@ -1,0 +1,18 @@
+{{- if .Values.storage.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "dev-session-template.fullname" . }}-pvc
+  namespace: {{ .Values.project.uuid }}
+  labels:
+    {{- include "dev-session-template.labels" . | nindent 4 }}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  {{- if .Values.storage.storageClass }}
+  storageClassName: {{ .Values.storage.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
+{{- end }}

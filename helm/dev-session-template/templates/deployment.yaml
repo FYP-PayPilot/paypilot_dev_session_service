@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dev-session-template.fullname" . }}
+  namespace: {{ .Values.project.uuid }}
+  labels:
+    {{- include "dev-session-template.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dev-session-template.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "dev-session-template.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.securityContext }}
+      securityContext:
+        {{- toYaml .Values.securityContext | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: dev-container
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: preview
+          containerPort: {{ .Values.service.preview.port }}
+          protocol: TCP
+        - name: chat
+          containerPort: {{ .Values.service.chat.port }}
+          protocol: TCP
+        - name: vscode
+          containerPort: {{ .Values.service.vscode.port }}
+          protocol: TCP
+        env:
+        - name: PROJECT_UUID
+          value: {{ .Values.project.uuid | quote }}
+        - name: PROJECT_ID
+          value: {{ .Values.project.id | quote }}
+        - name: USER_ID
+          value: {{ .Values.user.id | quote }}
+        - name: PREVIEW_PORT
+          value: {{ .Values.service.preview.port | quote }}
+        - name: CHAT_PORT
+          value: {{ .Values.service.chat.port | quote }}
+        - name: VSCODE_PORT
+          value: {{ .Values.service.vscode.port | quote }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        volumeMounts:
+        {{- if .Values.storage.enabled }}
+        - name: workspace
+          mountPath: /workspace
+        {{- end }}
+      volumes:
+      {{- if .Values.storage.enabled }}
+      - name: workspace
+        persistentVolumeClaim:
+          claimName: {{ include "dev-session-template.fullname" . }}-pvc
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
