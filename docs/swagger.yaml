@@ -2,6 +2,12 @@ basePath: /api/v1
 definitions:
   models.Session:
     properties:
+      chat_path:
+        description: Path redirect for chat
+        type: string
+      chat_url:
+        description: Chat/AI agents endpoint
+        type: string
       container_name:
         type: string
       created_at:
@@ -15,9 +21,19 @@ definitions:
       is_active:
         type: boolean
       namespace:
+        description: Uses project_uuid as namespace
+        type: string
+      preview_path:
+        description: Path redirect for preview
+        type: string
+      preview_url:
+        description: Service endpoints
         type: string
       project_id:
         type: integer
+      project_uuid:
+        description: UUID from another service
+        type: string
       status:
         description: pending, running, stopped, error
         type: string
@@ -29,8 +45,15 @@ definitions:
         type: string
       user_id:
         type: integer
+      vscode_path:
+        description: Path redirect for vscode
+        type: string
+      vscode_url:
+        description: VS Code web endpoint
+        type: string
     required:
     - project_id
+    - project_uuid
     - user_id
     type: object
 host: localhost:8080
@@ -180,6 +203,46 @@ paths:
             additionalProperties: true
             type: object
       summary: Get a dev session by ID
+      tags:
+      - sessions
+  /sessions/project/{project_uuid}:
+    get:
+      consumes:
+      - application/json
+      description: Get an existing session for a project UUID, or create a new one
+        if it doesn't exist
+      parameters:
+      - description: Project UUID
+        in: path
+        name: project_uuid
+        required: true
+        type: string
+      - description: User ID
+        in: query
+        name: user_id
+        type: integer
+      - description: Project ID
+        in: query
+        name: project_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Session'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get or create a dev session by project UUID
       tags:
       - sessions
 swagger: "2.0"

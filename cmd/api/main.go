@@ -15,6 +15,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/villageFlower/paypilot_dev_session_service/internal/database"
 	"github.com/villageFlower/paypilot_dev_session_service/internal/handlers"
+	"github.com/villageFlower/paypilot_dev_session_service/internal/kubernetes"
 	"github.com/villageFlower/paypilot_dev_session_service/internal/messaging"
 	"github.com/villageFlower/paypilot_dev_session_service/internal/middleware"
 	"github.com/villageFlower/paypilot_dev_session_service/pkg/config"
@@ -84,9 +85,16 @@ func main() {
 	router.Use(middleware.Recovery(logger.Log))
 	router.Use(middleware.CORS())
 
+	// Initialize Kubernetes client
+	k8sClient, err := kubernetes.NewClient(logger.Log, "./helm/dev-session-template")
+	if err != nil {
+		logger.Log.Warn("Failed to initialize Kubernetes client (service will continue without K8s integration)", zap.Error(err))
+		k8sClient = nil
+	}
+
 	// Initialize handlers
 	healthHandler := handlers.NewHealthHandler()
-	sessionHandler := handlers.NewSessionHandler(logger.Log)
+	sessionHandler := handlers.NewSessionHandler(logger.Log, k8sClient)
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
@@ -100,6 +108,7 @@ func main() {
 			sessions.POST("", sessionHandler.CreateSession)
 			sessions.GET("", sessionHandler.ListSessions)
 			sessions.GET("/:id", sessionHandler.GetSession)
+			sessions.GET("/project/:project_uuid", sessionHandler.GetOrCreateSessionByProjectUUID)
 			sessions.DELETE("/:id", sessionHandler.DeleteSession)
 		}
 	}

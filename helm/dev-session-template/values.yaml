@@ -1,0 +1,78 @@
+# Default values for dev-session-template
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Project configuration
+project:
+  uuid: ""  # Will be set dynamically (used as namespace)
+  id: 0     # Project ID from another service
+
+# User configuration
+user:
+  id: 0     # User ID
+
+# Image configuration
+image:
+  repository: ghcr.io/paypilot/dev-container
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+# Service configuration
+service:
+  type: ClusterIP
+  # LoadBalancer configuration
+  loadBalancer:
+    enabled: true
+    port: 80
+    targetPort: 8080
+  # Individual service ports
+  preview:
+    port: 3000
+    path: /preview
+  chat:
+    port: 3001
+    path: /chat
+  vscode:
+    port: 8080
+    path: /vscode
+
+# Resource limits
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+# Storage configuration
+storage:
+  enabled: true
+  size: 10Gi
+  storageClass: standard
+
+# Ingress configuration (optional)
+ingress:
+  enabled: false
+  className: nginx
+  annotations: {}
+  hosts: []
+  tls: []
+
+# Container security context
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Pod annotations
+podAnnotations: {}
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}

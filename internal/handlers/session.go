@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -8,18 +9,23 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/villageFlower/paypilot_dev_session_service/internal/database"
+	"github.com/villageFlower/paypilot_dev_session_service/internal/kubernetes"
 	"github.com/villageFlower/paypilot_dev_session_service/internal/models"
 	"go.uber.org/zap"
 )
 
 // SessionHandler handles session-related requests
 type SessionHandler struct {
-	log *zap.Logger
+	log      *zap.Logger
+	k8sClient *kubernetes.Client
 }
 
 // NewSessionHandler creates a new session handler
-func NewSessionHandler(log *zap.Logger) *SessionHandler {
-	return &SessionHandler{log: log}
+func NewSessionHandler(log *zap.Logger, k8sClient *kubernetes.Client) *SessionHandler {
+	return &SessionHandler{
+		log:      log,
+		k8sClient: k8sClient,
+	}
 }
 
 // CreateSession godoc
@@ -45,18 +51,46 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 		session.Token = uuid.New().String()
 	}
 
-	// Set expiration time if not provided (24 hours from now)
+	// Set expiration time if not provided (1 year for always-on sessions)
 	if session.ExpiresAt.IsZero() {
-		session.ExpiresAt = time.Now().Add(24 * time.Hour)
+		session.ExpiresAt = time.Now().Add(24 * 365 * time.Hour)
 	}
 
 	// Set IP address and user agent from request
 	session.IPAddress = c.ClientIP()
 	session.UserAgent = c.Request.UserAgent()
 
+	// Set namespace from project UUID if not set
+	if session.Namespace == "" && session.ProjectUUID != "" {
+		session.Namespace = session.ProjectUUID
+	}
+
 	// Set default status if not provided
 	if session.Status == "" {
 		session.Status = "pending"
+	}
+
+	// Create the dev container in Kubernetes if k8s client is available
+	if h.k8sClient != nil && session.ProjectUUID != "" {
+		ctx := context.Background()
+		endpoints, err := h.k8sClient.CreateDevContainer(ctx, session.ProjectUUID, session.ProjectID, session.UserID)
+		if err != nil {
+			h.log.Error("Failed to create dev container", zap.Error(err))
+			session.Status = "error"
+		} else {
+			session.Status = "running"
+			session.ContainerName = "dev-session-" + session.ProjectUUID
+			// Populate service endpoints
+			if endpoints != nil {
+				session.IPAddress = endpoints.ClusterIP
+				session.PreviewURL = endpoints.PreviewURL
+				session.PreviewPath = endpoints.PreviewPath
+				session.ChatURL = endpoints.ChatURL
+				session.ChatPath = endpoints.ChatPath
+				session.VscodeURL = endpoints.VscodeURL
+				session.VscodePath = endpoints.VscodePath
+			}
+		}
 	}
 
 	if err := database.DB.Create(&session).Error; err != nil {
@@ -174,7 +208,14 @@ func (h *SessionHandler) DeleteSession(c *gin.Context) {
 		return
 	}
 
-	// TODO: Integrate with Kubernetes to stop/delete the dev container
+	// Delete from Kubernetes if k8s client is available
+	if h.k8sClient != nil && session.ProjectUUID != "" {
+		ctx := context.Background()
+		if err := h.k8sClient.DeleteDevContainer(ctx, session.ProjectUUID); err != nil {
+			h.log.Error("Failed to delete dev container from Kubernetes", zap.Error(err))
+			// Continue with DB deletion even if K8s deletion fails
+		}
+	}
 
 	if err := database.DB.Delete(&session).Error; err != nil {
 		h.log.Error("Failed to delete session", zap.Error(err))
@@ -183,4 +224,93 @@ func (h *SessionHandler) DeleteSession(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+// GetOrCreateSessionByProjectUUID godoc
+// @Summary Get or create a dev session by project UUID
+// @Description Get an existing session for a project UUID, or create a new one if it doesn't exist
+// @Tags sessions
+// @Accept json
+// @Produce json
+// @Param project_uuid path string true "Project UUID"
+// @Param user_id query int false "User ID"
+// @Param project_id query int false "Project ID"
+// @Success 200 {object} models.Session
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /sessions/project/{project_uuid} [get]
+func (h *SessionHandler) GetOrCreateSessionByProjectUUID(c *gin.Context) {
+	projectUUID := c.Param("project_uuid")
+	if projectUUID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Project UUID is required"})
+		return
+	}
+
+	// Try to find existing session
+	var session models.Session
+	err := database.DB.Where("project_uuid = ? AND is_active = ?", projectUUID, true).First(&session).Error
+	
+	if err == nil {
+		// Session exists, return it
+		h.log.Info("Found existing session", zap.String("project_uuid", projectUUID))
+		c.JSON(http.StatusOK, session)
+		return
+	}
+
+	// Session doesn't exist, create a new one
+	h.log.Info("Creating new session for project", zap.String("project_uuid", projectUUID))
+
+	// Get user_id and project_id from query params or use defaults
+	userID, _ := strconv.Atoi(c.DefaultQuery("user_id", "0"))
+	projectID, _ := strconv.Atoi(c.DefaultQuery("project_id", "0"))
+
+	// Create new session
+	session = models.Session{
+		UserID:      userID,
+		ProjectID:   projectID,
+		ProjectUUID: projectUUID,
+		Token:       uuid.New().String(),
+		ExpiresAt:   time.Now().Add(24 * 365 * time.Hour), // 1 year expiration for always-on sessions
+		Namespace:   projectUUID, // Use project UUID as namespace
+		Status:      "pending",
+		IPAddress:   c.ClientIP(),
+		UserAgent:   c.Request.UserAgent(),
+		IsActive:    true,
+	}
+
+	// Create the dev container in Kubernetes if k8s client is available
+	if h.k8sClient != nil {
+		ctx := context.Background()
+		endpoints, err := h.k8sClient.CreateDevContainer(ctx, projectUUID, projectID, userID)
+		if err != nil {
+			h.log.Error("Failed to create dev container", zap.Error(err))
+			session.Status = "error"
+		} else {
+			session.Status = "running"
+			session.ContainerName = "dev-session-" + projectUUID
+			// Populate service endpoints
+			if endpoints != nil {
+				session.IPAddress = endpoints.ClusterIP
+				session.PreviewURL = endpoints.PreviewURL
+				session.PreviewPath = endpoints.PreviewPath
+				session.ChatURL = endpoints.ChatURL
+				session.ChatPath = endpoints.ChatPath
+				session.VscodeURL = endpoints.VscodeURL
+				session.VscodePath = endpoints.VscodePath
+			}
+		}
+	}
+
+	// Save to database
+	if err := database.DB.Create(&session).Error; err != nil {
+		h.log.Error("Failed to create session", zap.Error(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create session"})
+		return
+	}
+
+	h.log.Info("Session created successfully",
+		zap.String("project_uuid", projectUUID),
+		zap.Uint("session_id", session.ID))
+
+	c.JSON(http.StatusOK, session)
 }

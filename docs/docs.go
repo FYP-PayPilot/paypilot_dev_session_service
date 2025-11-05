@@ -152,6 +152,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/sessions/project/{project_uuid}": {
+            "get": {
+                "description": "Get an existing session for a project UUID, or create a new one if it doesn't exist",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "sessions"
+                ],
+                "summary": "Get or create a dev session by project UUID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Project UUID",
+                        "name": "project_uuid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Project ID",
+                        "name": "project_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.Session"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/sessions/{id}": {
             "get": {
                 "description": "Get dev session details by session ID",
@@ -231,9 +289,18 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "project_id",
+                "project_uuid",
                 "user_id"
             ],
             "properties": {
+                "chat_path": {
+                    "description": "Path redirect for chat",
+                    "type": "string"
+                },
+                "chat_url": {
+                    "description": "Chat/AI agents endpoint",
+                    "type": "string"
+                },
                 "container_name": {
                     "type": "string"
                 },
@@ -253,10 +320,23 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "namespace": {
+                    "description": "Uses project_uuid as namespace",
+                    "type": "string"
+                },
+                "preview_path": {
+                    "description": "Path redirect for preview",
+                    "type": "string"
+                },
+                "preview_url": {
+                    "description": "Service endpoints",
                     "type": "string"
                 },
                 "project_id": {
                     "type": "integer"
+                },
+                "project_uuid": {
+                    "description": "UUID from another service",
+                    "type": "string"
                 },
                 "status": {
                     "description": "pending, running, stopped, error",
@@ -273,6 +353,14 @@ const docTemplate = `{
                 },
                 "user_id": {
                     "type": "integer"
+                },
+                "vscode_path": {
+                    "description": "Path redirect for vscode",
+                    "type": "string"
+                },
+                "vscode_url": {
+                    "description": "VS Code web endpoint",
+                    "type": "string"
                 }
             }
         }
